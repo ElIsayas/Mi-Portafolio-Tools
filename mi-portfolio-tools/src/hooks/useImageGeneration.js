@@ -33,6 +33,7 @@ function useImageGeneration() {
 
       const url = generateImageUrl(finalPrompt, ratio.width, ratio.height);
       setImageUrl(url);
+      setIsLoading(false);
     } catch (requestError) {
       setError("No se pudo generar la imagen. Intenta de nuevo.");
       setIsLoading(false);
@@ -63,7 +64,6 @@ function useImageGeneration() {
   return {
     imageUrl,
     isLoading,
-    isImageReady,
     error,
     hasGenerated,
     generateImage,

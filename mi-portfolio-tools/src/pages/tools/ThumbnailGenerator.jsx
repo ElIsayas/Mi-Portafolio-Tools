@@ -55,7 +55,6 @@ function ThumbnailGenerator() {
   const {
     imageUrl,
     isLoading,
-    isImageReady,
     error,
     hasGenerated,
     generateImage,
@@ -223,12 +222,13 @@ function ThumbnailGenerator() {
             </div>
           )}
 
-          {imageUrl && (
-            <div className={isImageReady ? "space-y-4" : "hidden"}>
+          {imageUrl && !isLoading && (
+            <div className="space-y-4">
               <img
+                key={imageUrl}
                 src={imageUrl}
                 alt="Miniatura generada con IA"
-                className="w-full rounded-xl border border-white/10 shadow-glow"
+                className="w-full rounded-xl border border-white/10"
                 onLoad={onImageLoad}
                 onError={onImageError}
               />
