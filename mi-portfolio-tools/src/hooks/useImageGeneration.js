@@ -4,6 +4,7 @@ import { ASPECT_RATIOS, generateImage as generateImageUrl } from "../services/ap
 function useImageGeneration() {
   const [imageUrl, setImageUrl] = useState("");
   const [isLoading, setIsLoading] = useState(false);
+  const [isImageReady, setIsImageReady] = useState(false);
   const [error, setError] = useState("");
   const [hasGenerated, setHasGenerated] = useState(false);
 
@@ -20,6 +21,7 @@ function useImageGeneration() {
     try {
       setError("");
       setIsLoading(true);
+      setIsImageReady(false);
 
       const finalPrompt = [
         cleanedPrompt,
@@ -29,20 +31,25 @@ function useImageGeneration() {
         .filter(Boolean)
         .join(", ");
 
-      // Pequeña espera para que el usuario perciba el estado de carga.
-      await new Promise((resolve) => {
-        setTimeout(resolve, 400);
-      });
-
       const url = generateImageUrl(finalPrompt, ratio.width, ratio.height);
       setImageUrl(url);
-      setHasGenerated(true);
     } catch (requestError) {
-      setError("No se pudo generar la imagen. Intenta de nuevo en unos segundos.");
-      console.error(requestError);
-    } finally {
+      setError("No se pudo generar la imagen. Intenta de nuevo.");
       setIsLoading(false);
+      console.error(requestError);
     }
+  };
+
+  const onImageLoad = () => {
+    setIsLoading(false);
+    setIsImageReady(true);
+    setHasGenerated(true);
+  };
+
+  const onImageError = () => {
+    setIsLoading(false);
+    setIsImageReady(false);
+    setError("No se pudo cargar la imagen. Intenta de nuevo.");
   };
 
   const resetGeneration = () => {
@@ -50,14 +57,18 @@ function useImageGeneration() {
     setError("");
     setHasGenerated(false);
     setIsLoading(false);
+    setIsImageReady(false);
   };
 
   return {
     imageUrl,
     isLoading,
+    isImageReady,
     error,
     hasGenerated,
     generateImage,
+    onImageLoad,
+    onImageError,
     resetGeneration,
   };
 }

@@ -52,8 +52,17 @@ function ThumbnailGenerator() {
   const [selectedAspectRatio, setSelectedAspectRatio] = useState("youtube");
   const [isDownloading, setIsDownloading] = useState(false);
 
-  const { imageUrl, isLoading, error, hasGenerated, generateImage, resetGeneration } =
-    useImageGeneration();
+  const {
+    imageUrl,
+    isLoading,
+    isImageReady,
+    error,
+    hasGenerated,
+    generateImage,
+    onImageLoad,
+    onImageError,
+    resetGeneration,
+  } = useImageGeneration();
 
   const activeStyle = useMemo(
     () => styleOptions.find((style) => style.id === selectedStyle),
@@ -81,23 +90,24 @@ function ThumbnailGenerator() {
 
     try {
       setIsDownloading(true);
-      const response = await fetch(imageUrl);
+      const proxyUrl = `https://corsproxy.io/?${encodeURIComponent(imageUrl)}`;
+      const response = await fetch(proxyUrl);
       if (!response.ok) {
-        throw new Error("No se pudo descargar la imagen.");
+        throw new Error("Error al obtener imagen");
       }
 
       const blob = await response.blob();
       const objectUrl = URL.createObjectURL(blob);
       const anchor = document.createElement("a");
       anchor.href = objectUrl;
-      anchor.download = `miniatura-${selectedAspectRatio}.jpg`;
+      anchor.download = `miniatura-${selectedAspectRatio}-${Date.now()}.png`;
       document.body.appendChild(anchor);
       anchor.click();
       anchor.remove();
       URL.revokeObjectURL(objectUrl);
     } catch (downloadError) {
       console.error(downloadError);
-      alert("No se pudo descargar la imagen. Intenta nuevamente.");
+      alert("No se pudo descargar. Intenta clic derecho → Guardar imagen.");
     } finally {
       setIsDownloading(false);
     }
@@ -213,12 +223,14 @@ function ThumbnailGenerator() {
             </div>
           )}
 
-          {imageUrl && !isLoading && (
-            <div className="space-y-4">
+          {imageUrl && (
+            <div className={isImageReady ? "space-y-4" : "hidden"}>
               <img
                 src={imageUrl}
                 alt="Miniatura generada con IA"
                 className="w-full rounded-xl border border-white/10 shadow-glow"
+                onLoad={onImageLoad}
+                onError={onImageError}
               />
               <div className="flex flex-wrap gap-3">
                 <Button variant="secondary" loading={isDownloading} onClick={handleDownload}>
