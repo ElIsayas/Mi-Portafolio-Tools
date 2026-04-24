@@ -5,7 +5,36 @@ export const ASPECT_RATIOS = {
   twitter: { width: 1500, height: 500, label: "Twitter/X Banner" },
 };
 
-export function generateImage(prompt, width, height) {
-  const encodedPrompt = encodeURIComponent(prompt);
-  return `https://image.pollinations.ai/prompt/${encodedPrompt}?width=${width}&height=${height}&nologo=true&enhance=true`;
+export async function generateThumbnail(prompt, styleKeywords, aspectRatio) {
+  const response = await fetch("/api/generate-thumbnail", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ prompt, styleKeywords, aspectRatio }),
+  });
+
+  const rawBody = await response.text();
+  let data = {};
+
+  if (rawBody) {
+    try {
+      data = JSON.parse(rawBody);
+    } catch {
+      throw new Error(
+        response.ok
+          ? "La API devolvio una respuesta invalida."
+          : "La API local no respondio con JSON valido."
+      );
+    }
+  }
+
+  if (!response.ok) {
+    throw new Error(
+      data.error || "Error al generar la imagen. Verifica que la API local este disponible."
+    );
+  }
+
+  return {
+    enhancedPrompt: data.enhancedPrompt,
+    imageUrl: `data:${data.contentType};base64,${data.imageData}`,
+  };
 }

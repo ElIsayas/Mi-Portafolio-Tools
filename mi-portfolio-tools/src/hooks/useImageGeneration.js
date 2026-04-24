@@ -1,56 +1,39 @@
 import { useState } from "react";
-import { ASPECT_RATIOS, generateImage as generateImageUrl } from "../services/api";
+import { generateThumbnail } from "../services/api";
 
 function useImageGeneration() {
   const [imageUrl, setImageUrl] = useState("");
   const [isLoading, setIsLoading] = useState(false);
-  const [isImageReady, setIsImageReady] = useState(false);
   const [error, setError] = useState("");
   const [hasGenerated, setHasGenerated] = useState(false);
+  const [enhancedPrompt, setEnhancedPrompt] = useState("");
 
   const generateImage = async (prompt, aspectRatio, styleKeywords) => {
-    const cleanedPrompt = prompt.trim();
-
-    if (!cleanedPrompt) {
-      setError("Por favor escribe una descripción para generar la imagen.");
+    if (!prompt.trim()) {
+      setError("Por favor escribe una descripcion para generar la imagen.");
       return;
     }
-
-    const ratio = ASPECT_RATIOS[aspectRatio] ?? ASPECT_RATIOS.youtube;
 
     try {
       setError("");
       setIsLoading(true);
-      setIsImageReady(false);
+      setEnhancedPrompt("");
+      setImageUrl("");
 
-      const finalPrompt = [
-        cleanedPrompt,
+      const result = await generateThumbnail(
+        prompt.trim(),
         styleKeywords,
-        "high quality, 4k, professional, thumbnail style",
-      ]
-        .filter(Boolean)
-        .join(", ");
+        aspectRatio
+      );
 
-      const url = generateImageUrl(finalPrompt, ratio.width, ratio.height);
-      setImageUrl(url);
+      setEnhancedPrompt(result.enhancedPrompt);
+      setImageUrl(result.imageUrl);
+      setHasGenerated(true);
+    } catch (err) {
+      setError(err.message || "No se pudo generar la imagen. Intenta de nuevo.");
+    } finally {
       setIsLoading(false);
-    } catch (requestError) {
-      setError("No se pudo generar la imagen. Intenta de nuevo.");
-      setIsLoading(false);
-      console.error(requestError);
     }
-  };
-
-  const onImageLoad = () => {
-    setIsLoading(false);
-    setIsImageReady(true);
-    setHasGenerated(true);
-  };
-
-  const onImageError = () => {
-    setIsLoading(false);
-    setIsImageReady(false);
-    setError("No se pudo cargar la imagen. Intenta de nuevo.");
   };
 
   const resetGeneration = () => {
@@ -58,7 +41,7 @@ function useImageGeneration() {
     setError("");
     setHasGenerated(false);
     setIsLoading(false);
-    setIsImageReady(false);
+    setEnhancedPrompt("");
   };
 
   return {
@@ -66,9 +49,8 @@ function useImageGeneration() {
     isLoading,
     error,
     hasGenerated,
+    enhancedPrompt,
     generateImage,
-    onImageLoad,
-    onImageError,
     resetGeneration,
   };
 }
