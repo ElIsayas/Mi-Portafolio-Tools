@@ -50,14 +50,16 @@ function ThumbnailGenerator() {
   const [prompt, setPrompt] = useState("");
   const [selectedStyle, setSelectedStyle] = useState(styleOptions[0].id);
   const [selectedAspectRatio, setSelectedAspectRatio] = useState("youtube");
+  const [isDownloading, setIsDownloading] = useState(false);
 
   const {
     imageUrl,
     isLoading,
     error,
     hasGenerated,
-    enhancedPrompt,
     generateImage,
+    onImageLoad,
+    onImageError,
     resetGeneration,
   } = useImageGeneration();
 
@@ -78,6 +80,36 @@ function ThumbnailGenerator() {
   const handleReset = () => {
     setPrompt("");
     resetGeneration();
+  };
+
+  const handleDownload = async () => {
+    if (!imageUrl) {
+      return;
+    }
+
+    try {
+      setIsDownloading(true);
+      const proxyUrl = `https://corsproxy.io/?${encodeURIComponent(imageUrl)}`;
+      const response = await fetch(proxyUrl);
+      if (!response.ok) {
+        throw new Error("Error al obtener imagen");
+      }
+
+      const blob = await response.blob();
+      const objectUrl = URL.createObjectURL(blob);
+      const anchor = document.createElement("a");
+      anchor.href = objectUrl;
+      anchor.download = `miniatura-${selectedAspectRatio}-${Date.now()}.png`;
+      document.body.appendChild(anchor);
+      anchor.click();
+      anchor.remove();
+      URL.revokeObjectURL(objectUrl);
+    } catch (downloadError) {
+      console.error(downloadError);
+      alert("No se pudo descargar. Intenta clic derecho → Guardar imagen.");
+    } finally {
+      setIsDownloading(false);
+    }
   };
 
   return (
@@ -118,19 +150,6 @@ function ThumbnailGenerator() {
                 </button>
               ))}
             </div>
-          </div>
-
-          <div className="mt-8">
-            {enhancedPrompt && (
-              <div className="rounded-xl border border-purple-500/30 bg-purple-500/10 p-4">
-                <div>
-                  <p className="mb-1 text-xs font-semibold text-purple-400">
-                    ✨ Prompt mejorado por IA:
-                  </p>
-                  <p className="text-xs leading-relaxed text-gray-300">{enhancedPrompt}</p>
-                </div>
-              </div>
-            )}
           </div>
 
           <div className="mt-8">
@@ -190,7 +209,6 @@ function ThumbnailGenerator() {
 
         <article className="rounded-2xl border border-white/10 bg-card p-5 sm:p-6">
           <h2 className="mb-4 text-sm font-semibold text-white">Vista previa</h2>
-
           {!imageUrl && !isLoading && (
             <div className="flex min-h-[320px] flex-col items-center justify-center rounded-xl border border-dashed border-white/15 bg-dark/80 p-6 text-center text-gray-400">
               <span className="text-5xl">🖼️</span>
@@ -199,33 +217,23 @@ function ThumbnailGenerator() {
           )}
 
           {isLoading && (
-            <div className="flex min-h-[320px] flex-col items-center justify-center gap-3 rounded-xl border border-white/10 bg-dark/80">
+            <div className="flex min-h-[320px] items-center justify-center rounded-xl border border-white/10 bg-dark/80">
               <Loader />
-              <p className="animate-pulse text-xs text-gray-400">
-                Mejorando prompt y generando imagen... puede tardar ~30s
-              </p>
             </div>
           )}
 
           {imageUrl && !isLoading && (
             <div className="space-y-4">
               <img
+                key={imageUrl}
                 src={imageUrl}
                 alt="Miniatura generada con IA"
                 className="w-full rounded-xl border border-white/10"
+                onLoad={onImageLoad}
+                onError={onImageError}
               />
               <div className="flex flex-wrap gap-3">
-                <Button
-                  variant="secondary"
-                  onClick={() => {
-                    const anchor = document.createElement("a");
-                    anchor.href = imageUrl;
-                    anchor.download = `miniatura-${Date.now()}.jpg`;
-                    document.body.appendChild(anchor);
-                    anchor.click();
-                    anchor.remove();
-                  }}
-                >
+                <Button variant="secondary" loading={isDownloading} onClick={handleDownload}>
                   ⬇️ Descargar
                 </Button>
                 <Button variant="ghost" onClick={handleReset}>
